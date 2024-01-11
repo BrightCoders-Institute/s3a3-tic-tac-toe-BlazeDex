@@ -64,17 +64,36 @@ class TicTacToe
     check_winner || board_full?
   end
 
+  def valid_input
+    loop do
+      move = gets.chomp.split.map { |coord| coord.match?(/^\d+$/) ? coord.to_i : nil }
+
+      if move.all?(&:itself) && move.length == 2
+        return coordinates(move)
+      else
+        puts 'Entrada inválida. Ingresa solo números para la fila y la columna (ej. 0 1).'
+      end
+    end
+  end
+
+  def coordinates(move)
+    if valid_move?(move[0], move[1])
+      move
+    else
+      puts 'Movimiento inválido. La casilla ya está ocupada. Ingresa la fila y la columna nuevamente (ej. 0 1).'
+    end
+  end
+
   def playing_game
     until game_over?
+      clear_console
       display_board
       puts "\nEste es el turno de #{@current_player.name}. Ingresa la fila y la columna (ej. 0 1)."
-      move = gets.chomp.split.map(&:to_i)
+      move = valid_input
       make_move(*move)
-      puts
     end
-
+    clear_console
     display_board
-
     announcement
   end
 
@@ -87,5 +106,6 @@ class TicTacToe
   end
 end
 
-game = TicTacToe.new('Alan', 'Tirzo')
-game.playing_game
+def clear_console
+  system('clear') || system('cls')
+end
