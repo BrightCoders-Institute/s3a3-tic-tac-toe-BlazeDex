@@ -15,7 +15,7 @@ class App
     @name2 = name2
 
     gaming = TicTacToe.new(@name1, @name2)
-    gaming.playing_game
+    gaming.play
   end
 end
 

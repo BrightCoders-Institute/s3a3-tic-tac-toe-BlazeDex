@@ -1,28 +1,68 @@
 # frozen_string_literal: true
 
 require_relative './player'
+require_relative './board_helpers'
 
-# Clase TicTacToe, recibe los los parametros Player1 y Player2 para asignar el nombre del jugador.
+# Clase TicTac
 class TicTacToe
-  def initialize(player1, player2)
-    @name1 = player1
-    @name2 = player2
+  include BoardHelpers
+
+  attr_reader :current_player
+
+  def initialize(first_player, second_player)
     @board = Array.new(3) { Array.new(3, ' ') }
-    @players = [Player.new(@name1, 'X'), Player.new(@name2, 'O')]
+    @players = [Player.new(first_player, 'X'), Player.new(second_player, 'O')]
     @current_player = @players.first
   end
 
-  def display_board
-    puts '  0 1 2'
-    @board.each_with_index do |row, i|
-      print "#{i} "
-      row.each { |cell| print "#{cell} " }
-      puts
+  def play
+    until game_over?
+      new_board
+      move = obt_valid_move
+      make_move(*move)
+    end
+    new_turn
+  end
+
+  private
+
+  def new_board
+    clear_console
+    display_board
+    puts "\nEste es el turno de #{current_player.name}. Ingresa la fila y la columna (ej. 0 1)."
+  end
+
+  def new_turn
+    clear_console
+    display_board
+    announce_winner
+  end
+
+  def obt_valid_move
+    loop do
+      move = obt_user_input
+      return move if valid_move?(move[0], move[1])
+
+      puts 'Movimiento inválido. La casilla ya está ocupada. Ingresa la fila y la columna nuevamente (ej. 0 1).'
     end
   end
 
-  def switch_player
-    @current_player = @players.cycle.find { |player| player != @current_player }
+  def obt_user_input
+    loop do
+      input = gets.chomp.split.map { |coord| coord.match?(/^\d+$/) ? coord.to_i : nil }
+
+      return input if valid_input?(input) && valid_range?(input[0]) && valid_range?(input[1])
+
+      puts 'Entrada inválida. Ingresa solo números del 0 al 2 para la fila y la columna (ej. 0 1).'
+    end
+  end
+
+  def valid_range?(num)
+    (0..2).cover?(num)
+  end
+
+  def valid_input?(input)
+    input.all?(&:itself) && input.length == 2
   end
 
   def valid_move?(row, col)
@@ -32,80 +72,39 @@ class TicTacToe
   def make_move(row, col)
     if valid_move?(row, col)
       @board[row][col] = @current_player.symbol
-      if check_winner.nil? # Verificar si el movimiento resulta en un ganador antes de cambiar de jugador
-        switch_player
-      end
+      switch_player if check_winner.nil?
     else
       puts 'Movimiento inválido. Inténtalo de nuevo.'
     end
   end
 
+  def switch_player
+    @current_player = @players.cycle.find { |player| player != @current_player }
+  end
+
   def check_winner
-    return @current_player if check_lines(@board) || check_lines(@board.transpose)
-    return @current_player if check_diagonal([@board[0][0], @board[1][1], @board[2][2]])
-    return @current_player if check_diagonal([@board[0][2], @board[1][1], @board[2][0]])
+    winner = nil
 
-    nil
-  end
+    [@board, @board.transpose, diagonals].each do |lines|
+      winner ||= lines_winner(lines)
+    end
 
-  def check_lines(lines)
-    lines.any? { |line| line.uniq.length == 1 && line[0] != ' ' }
-  end
-
-  def check_diagonal(diagonal)
-    diagonal.uniq.length == 1 && diagonal[0] != ' '
-  end
-
-  def board_full?
-    @board.flatten.none?(' ')
+    winner
   end
 
   def game_over?
     check_winner || board_full?
   end
 
-  def valid_input
-    loop do
-      move = gets.chomp.split.map { |coord| coord.match?(/^\d+$/) ? coord.to_i : nil }
-
-      if move.all?(&:itself) && move.length == 2
-        return coordinates(move)
-      else
-        puts 'Entrada inválida. Ingresa solo números para la fila y la columna (ej. 0 1).'
-      end
-    end
-  end
-
-  def coordinates(move)
-    if valid_move?(move[0], move[1])
-      move
-    else
-      puts 'Movimiento inválido. La casilla ya está ocupada. Ingresa la fila y la columna nuevamente (ej. 0 1).'
-    end
-  end
-
-  def playing_game
-    until game_over?
-      clear_console
-      display_board
-      puts "\nEste es el turno de #{@current_player.name}. Ingresa la fila y la columna (ej. 0 1)."
-      move = valid_input
-      make_move(*move)
-    end
-    clear_console
-    display_board
-    announcement
-  end
-
-  def announcement
+  def announce_winner
     if check_winner
-      puts "Jugador #{@current_player.name} ha ganado"
+      puts "Jugador #{current_player.name} ha ganado"
     else
       puts '¡El juego ha resultado en empate!'
     end
   end
-end
 
-def clear_console
-  system('clear') || system('cls')
+  def clear_console
+    system('clear') || system('cls')
+  end
 end
